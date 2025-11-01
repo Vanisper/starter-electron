@@ -1,5 +1,18 @@
-# Vue 3 + TypeScript + Vite
+# starter-electron
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+- [Electron](https://www.electronjs.org)
+- [Vue3](https://vuejs.org)
+- [TypeScript](https://www.typescriptlang.org)
+- [Vite](https://vite.dev): use `rolldown-vite@7`
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+The current project initial template is created by:
+``` shell
+bun create vite starter-electron --template vue-ts
+```
+
+## Integrated Electron
+
+### install `electron` & `electron-builder`
+```shell
+bun add electron electron-builder -D
+```
