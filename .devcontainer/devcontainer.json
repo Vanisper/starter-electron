@@ -15,6 +15,7 @@
   "customizations": {
     "vscode": {
       "extensions": [
+        "Vue.volar",
         "dbaeumer.vscode-eslint",
         "EditorConfig.EditorConfig"
       ]
