@@ -1,23 +1,24 @@
 {
-  "name": "Bun",
-  "dockerFile": "Dockerfile",
+  "name": "Electron Dev Container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "runArgs": [
     "--network=host",
     "--name",
     "starter-electron"
   ],
-  "build": {
-    // Update 'VARIANT' to pick a Bun version.
-    "args": {
-      "VARIANT": "latest"
-    }
-  },
+  // https://vscode.js.cn/remote/advancedcontainers/start-processes
+  // https://github.com/orgs/devcontainers/discussions/122
+  "overrideCommand": false,
   "customizations": {
     "vscode": {
       "extensions": [
-        "Vue.volar",
+        "oven.bun-vscode",
         "dbaeumer.vscode-eslint",
-        "EditorConfig.EditorConfig"
+        "esbenp.prettier-vscode",
+        "ms-vscode.cpptools",
+        "Vue.volar"
       ]
     }
   }
