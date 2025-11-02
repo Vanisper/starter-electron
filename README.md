@@ -83,3 +83,62 @@ export default defineConfig({
 ```
 
 > Now, you can try running `bun dev`.
+
+### electron-builder config
+
+``` json5
+// electron-builder.json5
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  // "appId": "com.electron.${name}",
+  "productName": "starter-electron",
+  "directories": {
+    "output": "release/${version}",
+    "buildResources": "build"
+  },
+  "files": [
+    "dist",
+    "dist-electron"
+  ],
+  "asar": true,
+  "compression": "maximum",
+  "mac": {
+    "target": [ "dmg" ],
+    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+  },
+  "linux": {
+    "target": [ "AppImage" ],
+    "artifactName": "${productName}-Linux-${version}.${ext}"
+  },
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [ "x64", "ia32", "universal" ]
+      }
+    ],
+    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowElevation": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": null,
+    "uninstallDisplayName": "${productName} ${version}",
+    "runAfterFinish": false,
+    "include": "build/installer.nsh",
+    "perMachine": false,
+    "deleteAppDataOnUninstall": false
+  }
+}
+```
+``` json
+// package.json
+{
+  // ...
+  "build:electron": "vue-tsc -b && vite build && electron-builder",
+  // ...
+}
+```
