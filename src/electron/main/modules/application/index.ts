@@ -5,9 +5,18 @@ import {
   type BrowserWindowConstructorOptions,
   type App,
   type HandlerDetails,
-  type WindowOpenHandlerResponse,
   type Event,
 } from 'electron';
+
+// ! 为了兼容 electron@22
+// 最后支持 win7 的 electron 版本 - https://releases.electronjs.org/release?major=v22
+type WindowOpenHandlerResponse = {
+  action: 'deny'
+} | {
+  action: 'allow',
+  outlivesOpener?: boolean,
+  overrideBrowserWindowOptions?: BrowserWindowConstructorOptions
+}
 
 export interface AppPaths {
   devUrl: string | undefined;
