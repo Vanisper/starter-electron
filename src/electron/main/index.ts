@@ -1,9 +1,10 @@
 import { app as electronApp } from "electron";
 import path from "node:path";
-import { Application, ipcManager, setupIpc } from "./modules";
+import { Application, setupIpc } from "./modules";
+import { getDirname } from "@/electron/utils";
 
 // https://github.com/electron-vite/vite-plugin-electron/issues/258
-const __dirname = path.dirname(new URL(import.meta.url).pathname)
+globalThis.__dirname = getDirname()
 
 const app = new Application(
   electronApp,
@@ -18,13 +19,6 @@ const app = new Application(
   {
     devUrl: process.env.VITE_DEV_SERVER_URL,
     prodFile: path.join(__dirname, '../../dist/index.html'),
-  },
-  {
-    // 系统物理的关闭按钮会触发此处
-    onWindowClose(event, window) {
-      event.preventDefault()
-      ipcManager.sendToWindow(window.id, 'app:quit')
-    },
   }
 );
 
