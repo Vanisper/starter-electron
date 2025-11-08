@@ -138,7 +138,7 @@ export default defineConfig({
     "target": [
       {
         "target": "nsis",
-        "arch": [ "x64", "ia32", "universal" ]
+        "arch": [ "x64", "ia32" ]
       }
     ],
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
@@ -165,4 +165,10 @@ export default defineConfig({
   "build:electron": "vue-tsc -b && vite build && electron-builder",
   // ...
 }
+```
+
+### cross-compile
+If you want to cross-compile, you can execute (windows):
+``` shell
+bun run build:electron -- --win
 ```

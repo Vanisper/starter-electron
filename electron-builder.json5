@@ -24,7 +24,7 @@
     "target": [
       {
         "target": "nsis",
-        "arch": [ "x64", "ia32", "universal" ]
+        "arch": [ "x64", "ia32" ]
       }
     ],
     "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
