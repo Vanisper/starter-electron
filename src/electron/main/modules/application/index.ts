@@ -6,6 +6,8 @@ import {
   type App,
   type HandlerDetails,
   type Event,
+  type OnBeforeRequestListenerDetails,
+  type CallbackResponse,
 } from 'electron';
 
 // ! 为了兼容 electron@22
@@ -26,6 +28,8 @@ export interface AppPaths {
 export interface Handlers {
   onWindowOpen?: (details: Electron.HandlerDetails, parentWindow: BrowserWindow) => WindowOpenHandlerResponse | void
   onWindowClose?: (event: Event, window: BrowserWindow) => void
+  /** 资源请求即将发生时 */
+  onBeforeRequest?: (details: OnBeforeRequestListenerDetails) => Promise<CallbackResponse | void>
 }
 
 export class Application {
@@ -118,6 +122,14 @@ export class Application {
     }
 
     const newWindow = new BrowserWindow(options);
+
+    newWindow.webContents.session.webRequest.onBeforeRequest(async (details, callback) => {
+      const response = await this.handlers?.onBeforeRequest?.(details)
+      if (response) {
+        return callback(response);
+      }
+      callback({});
+    });
 
     newWindow.webContents.setWindowOpenHandler((details) => {
       console.log(`[WindowHandler] 父窗口 (ID: ${newWindow.id}) 请求打开: ${details.url}`);
