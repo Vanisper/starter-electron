@@ -1,7 +1,12 @@
-import { defineConfig, type AliasOptions } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import electron from "vite-plugin-electron";
-import { fileURLToPath } from 'node:url';
+import { defineConfig, type AliasOptions } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import { fileURLToPath } from 'url';
+
+import { createElectronPlugins } from './electron.config';
+
+/** electron 别名模块配置 */
+const VITE_TARGET_ELECTRON = process.env['VITE_TARGET_ELECTRON'];
+const [customName, customFormat, ..._rest] = VITE_TARGET_ELECTRON ? VITE_TARGET_ELECTRON.split(',') : []
 
 const alias: AliasOptions = {
   "@": fileURLToPath(new URL("./src", import.meta.url)),
@@ -13,21 +18,16 @@ export default defineConfig({
   resolve: { alias },
   plugins: [
     vue(),
-    electron([
-      {
-        entry: 'src/electron/main/index.ts',
-        vite: {
-          build: { outDir: 'dist-electron/main' },
-          resolve: { alias },
-        }
-      },
-      {
-        entry: 'src/electron/preload/index.ts',
-        vite: {
-          build: { outDir: 'dist-electron/preload' },
-          resolve: { alias },
-        }
-      },
-    ]),
+    createElectronPlugins({
+      // @ts-ignore
+      target: [customName, customFormat],
+      config: {
+        electron: {
+          root: 'src/electron',
+          vite: { resolve: { alias } }
+        },
+        renderer: { root: 'src/renderer' }
+      }
+    }),
   ],
 })

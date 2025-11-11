@@ -1,10 +1,17 @@
 import { app as electronApp } from "electron";
-import path from "node:path";
 import { Application, setupIpc } from "./modules";
-import { checkUrlAccessible, getDirname } from "@/electron/utils";
+import { checkUrlAccessible, getDirname, inferProjectRoot } from "@/electron/utils";
+import path from "path";
 
 // https://github.com/electron-vite/vite-plugin-electron/issues/258
 globalThis.__dirname = getDirname()
+
+const projectRoot = inferProjectRoot(__dirname, __main_output__);
+
+const preloadPath = path.join(projectRoot, __preload_dist_entry__);
+const rendererPath = path.join(projectRoot, __renderer_dist_entry__);
+
+console.log('---- eletron 版本 ----', process.versions.electron);
 
 /**
  * CDN 白名单
@@ -22,12 +29,12 @@ const app = new Application(
       webSecurity: false,
       nodeIntegration: true,
       contextIsolation: true,
-      preload: path.join(__dirname, '../preload/index.js'),
+      preload: preloadPath,
     }
   },
   {
     devUrl: process.env.VITE_DEV_SERVER_URL,
-    prodFile: path.join(__dirname, '../../dist/index.html'),
+    prodFile: rendererPath,
   },
   {
     async onBeforeRequest(details) {
