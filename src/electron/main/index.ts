@@ -1,7 +1,13 @@
-import { app as electronApp } from "electron";
-import { Application, setupIpc } from "./modules";
-import { checkUrlAccessible, getDirname, inferProjectRoot } from "@/electron/utils";
 import path from "path";
+import { app as electronApp } from "electron";
+import { checkUrlAccessible, getDirname, inferProjectRoot } from "@/electron/utils";
+import { Application, setupIpc } from "./modules";
+
+import {
+  __main_output__,
+  __preload_dist_entry__,
+  __renderer_dist_entry__,
+} from "virtual:electron-unified";
 
 // https://github.com/electron-vite/vite-plugin-electron/issues/258
 globalThis.__dirname = getDirname()

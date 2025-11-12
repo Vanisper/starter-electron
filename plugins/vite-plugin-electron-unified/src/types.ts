@@ -94,6 +94,32 @@ export interface IRendererConfig {
   entry: string;
 }
 
+/**
+ * Electron 路径配置接口
+ */
+export interface ElectronPaths {
+  /** 主进程构建入口文件路径 */
+  __main_dist_entry__: string;
+  /** 预加载脚本构建入口文件路径 */
+  __preload_dist_entry__: string;
+  /** 渲染进程构建入口文件路径 */
+  __renderer_dist_entry__: string;
+  /** 主进程输出目录 */
+  __main_output__: string;
+  /** 预加载脚本输出目录 */
+  __preload_output__: string;
+}
+
+/**
+ * 虚拟模块选项接口
+ */
+export interface VirtualModuleOptions {
+  /** 是否启用虚拟模块 */
+  enabled?: boolean;
+  /** 是否启用开发环境增强 */
+  devEnhancement?: boolean;
+}
+
 export interface CustomElectronOptions {
   /**
    * @description Electron 28 版本开始支持 ESM
@@ -102,4 +128,8 @@ export interface CustomElectronOptions {
    */
   target?: TargetElectron;
   config?: UserProjectConfig;
+  /**
+   * 虚拟模块配置
+   */
+  virtualModule?: VirtualModuleOptions;
 }

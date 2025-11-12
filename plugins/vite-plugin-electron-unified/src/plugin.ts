@@ -1,9 +1,11 @@
-import type { LibraryFormats, PluginOption } from 'vite';
+import type { LibraryFormats, PluginOption, InlineConfig, ResolvedConfig } from 'vite';
 import { build, type Configuration } from 'electron-builder';
 import electron, { type ElectronOptions } from "vite-plugin-electron";
 
 import { defineConfig } from './config.js';
-import { LibraryFormat, type CustomElectronOptions } from './types.js';
+import { LibraryFormat, type CustomElectronOptions, type ElectronPaths } from './types.js';
+import { createVirtualModulePlugin } from './virtual-module.js';
+import { VIRTUAL_MODULE_ID } from './constant.js';
 
 const defaultTargetElectron = ['electron', 'cjs'] as const
 const [defaultName, defaultLibFormat] = defaultTargetElectron;
@@ -15,7 +17,14 @@ export function electronUnified(customOptions: CustomElectronOptions) {
   const {
     target = defaultTargetElectron,
     config: customConfig,
+    virtualModule: virtualModuleOptions = {},
   } = customOptions;
+
+  // 虚拟模块配置，默认启用
+  const {
+    enabled = true,
+    devEnhancement = true,
+  } = virtualModuleOptions;
 
   const config = defineConfig(customConfig);
 
@@ -31,39 +40,53 @@ export function electronUnified(customOptions: CustomElectronOptions) {
     fileName: () => `[name].${libExt}`,
   };
 
-  // 动态确定 Electron 启动的入口文件 (相对路径)
-  const __main_dist_entry__ = config.get__main_dist_entry__(libExt);
-  const __preload_dist_entry__ = config.get__preload_dist_entry__(libExt);
-  const __main_output__ = config.__main_output__;
-  const __preload_output__ = config.__preload_output__;
-  const __renderer_dist_entry__ = config.__renderer_dist_entry__;
+  // 创建 Electron 路径配置对象
+  const electronPaths: ElectronPaths = {
+    __main_dist_entry__: config.get__main_dist_entry__(libExt),
+    __preload_dist_entry__: config.get__preload_dist_entry__(libExt),
+    __renderer_dist_entry__: config.__renderer_dist_entry__,
+    __main_output__: config.__main_output__,
+    __preload_output__: config.__preload_output__,
+  };
 
   const isCustom = customElectronPkg !== defaultName
   console.warn(`[Vite Build] ℹ️ 主进程构建格式为: ${libFormat}`);
 
+  // 创建主进程配置
+  const mainViteConfig: InlineConfig = {
+    build: {
+      lib: {
+        entry: config.mainEntryPath,
+        ...libOptions,
+      },
+      outDir: config.mainOutDir,
+    },
+    ...config.electron.vite,
+    ...config.electron.main.vite,
+  };
+
+  if (enabled) {
+    mainViteConfig.plugins ??= []
+    mainViteConfig.plugins.push(
+      createVirtualModulePlugin(electronPaths, { devEnhancement }),
+      {
+        name: 'electron-unified:usage-hint',
+        configResolved(_config: ResolvedConfig) {
+          if (process.env.NODE_ENV !== 'production' && enabled) {
+            console.log(`[Electron Unified] 📦 虚拟模块已启用: ${VIRTUAL_MODULE_ID}`);
+            console.log('[Electron Unified] 💡 在主进程中使用以下方式导入路径配置:');
+            console.log(`  import electronPaths from "${VIRTUAL_MODULE_ID}";`);
+            console.log('  // 或');
+            console.log(`  import { __main_dist_entry__ } from "${VIRTUAL_MODULE_ID}";`);
+          }
+        }
+      })
+  }
+
   const electronConfig: ElectronOptions[] = [
     {
       // === main ===
-      vite: {
-        // 定义宏，供主进程脚本使用 (使用 path.resolve 确保路径稳定)
-        // TODO: 实现虚拟模块，主进程通过虚拟模块引用
-        define: {
-          '__main_dist_entry__': JSON.stringify(__main_dist_entry__),
-          '__preload_dist_entry__': JSON.stringify(__preload_dist_entry__),
-          '__renderer_dist_entry__': JSON.stringify(__renderer_dist_entry__),
-          '__main_output__': JSON.stringify(__main_output__),
-          '__preload_output__': JSON.stringify(__preload_output__),
-        },
-        build: {
-          lib: {
-            entry: config.mainEntryPath,
-            ...libOptions,
-          },
-          outDir: config.mainOutDir,
-        },
-        ...config.electron.vite,
-        ...config.electron.main.vite,
-      },
+      vite: mainViteConfig,
       onstart(args) {
         if (isCustom) {
           console.log('[Custom Hook] Electron Downgrade Check...');
@@ -71,7 +94,7 @@ export function electronUnified(customOptions: CustomElectronOptions) {
         }
 
         // 启动参数：指定主进程文件路径
-        const argv = [__main_dist_entry__ ?? '.', '--no-sandbox'];
+        const argv = [electronPaths.__main_dist_entry__ ?? '.', '--no-sandbox'];
         args.startup(argv, undefined, customElectronPkg);
       },
     },
@@ -103,7 +126,7 @@ export function electronUnified(customOptions: CustomElectronOptions) {
           try {
             const buildConfig: Configuration = {
               extraMetadata: {
-                'main': __main_dist_entry__,
+                'main': electronPaths.__main_dist_entry__,
               },
               // https://github.com/electron-userland/electron-builder/issues/3747
               electronVersion: isCustom ? customElectronPkg : null,
