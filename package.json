@@ -28,7 +28,12 @@
     "build": "vue-tsc -b && vite build",
     "build:22": "vue-tsc -b && cross-env VITE_TARGET_ELECTRON=electron-v22,cjs vite build",
     "run:lib": "bun --filter './packages/*' --filter './plugins/*'",
-    "postinstall": "bun run:lib -- build"
+    "dev:lib": "bun run:lib -- dev",
+    "build:lib": "bun run:lib -- build",
+    "clear:lib": "bun run:lib -- clear",
+    "clear-all:lib": "bun run:lib -- clear-all",
+    "postinstall": "bun build:lib",
+    "clear-all": "bunx rimraf dist dist-electron node_modules && bun clear-all:lib"
   },
   "dependencies": {
     "vue": "catalog:"

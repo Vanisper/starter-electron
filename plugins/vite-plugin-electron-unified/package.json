@@ -24,7 +24,8 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "clean": "bunx rimraf dist"
+    "clear": "bunx rimraf dist",
+    "clear-all": "bunx rimraf dist node_modules"
   },
   "peerDependencies": {
     "vite": "catalog:",
