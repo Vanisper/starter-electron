@@ -1,8 +1,7 @@
 import { defineConfig, type AliasOptions } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath } from 'url';
-
-import { createElectronPlugins } from './electron.config';
+import electronUnified from 'vite-plugin-electron-unified';
 
 /** electron 别名模块配置 */
 const VITE_TARGET_ELECTRON = process.env['VITE_TARGET_ELECTRON'];
@@ -18,7 +17,7 @@ export default defineConfig({
   resolve: { alias },
   plugins: [
     vue(),
-    createElectronPlugins({
+    electronUnified({
       // @ts-ignore
       target: [customName, customFormat],
       config: {
