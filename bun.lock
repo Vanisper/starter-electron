@@ -35,6 +35,10 @@
       },
     },
   },
+  "trustedDependencies": [
+    "electron",
+    "electron-v22",
+  ],
   "overrides": {
     "vite": "catalog:",
   },

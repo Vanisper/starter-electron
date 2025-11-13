@@ -22,6 +22,7 @@
       "cross-env": "^10.1.0"
     }
   },
+  "trustedDependencies": ["electron", "electron-v22"],
   "scripts": {
     "dev": "vite",
     "dev:22": "cross-env VITE_TARGET_ELECTRON=electron-v22,cjs vite",
