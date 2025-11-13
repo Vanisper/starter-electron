@@ -8,7 +8,7 @@ const VITE_TARGET_ELECTRON = process.env['VITE_TARGET_ELECTRON'];
 const [customName, customFormat, ..._rest] = VITE_TARGET_ELECTRON ? VITE_TARGET_ELECTRON.split(',') : []
 
 const alias: AliasOptions = {
-  "@": fileURLToPath(new URL("./src", import.meta.url)),
+  "@": fileURLToPath(new URL("./apps", import.meta.url)),
 }
 
 // https://vite.dev/config/
@@ -19,14 +19,14 @@ export default defineConfig({
       target: [customName, customFormat],
       config: {
         renderer: {
-          root: 'src/renderer',
+          root: 'apps/renderer',
           vite: {
             resolve: { alias },
             plugins: [vue()],
           }
         },
         electron: {
-          root: 'src/electron',
+          root: 'apps/electron',
           vite: { resolve: { alias } }
         },
       }
