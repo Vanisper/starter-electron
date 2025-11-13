@@ -79,14 +79,16 @@ export class ElectronConfig implements IElectronConfig {
  * 💡 Renderer 路径配置类
  */
 export class RendererConfig implements IRendererConfig {
-  public root: string;
+  public root?: string;
   public dist: string;
   public entry: string;
+  public vite?: import('vite').InlineConfig;
 
   constructor(defaultConfig: IRendererConfig, userConfig?: Partial<IRendererConfig>) {
     this.root = userConfig?.root ?? defaultConfig.root;
     this.dist = userConfig?.dist ?? defaultConfig.dist;
     this.entry = userConfig?.entry ?? defaultConfig.entry;
+    this.vite = userConfig?.vite ?? defaultConfig.vite;
   }
 
   /**
@@ -126,7 +128,6 @@ export class ProjectConfig {
       },
     },
     renderer: {
-      root: 'src',
       dist: 'dist',
       entry: 'index.html',
     },

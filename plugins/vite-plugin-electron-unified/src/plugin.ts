@@ -1,11 +1,15 @@
-import type { LibraryFormats, PluginOption, InlineConfig, ResolvedConfig } from 'vite';
-import { build, type Configuration } from 'electron-builder';
+import path from 'path';
+import { mergeConfig } from 'vite';
+import type { LibraryFormats, PluginOption, ResolvedConfig } from 'vite';
 import electron, { type ElectronOptions } from "vite-plugin-electron";
+import { build, type Configuration } from 'electron-builder';
 
 import { defineConfig } from './config.js';
-import { LibraryFormat, type CustomElectronOptions, type ElectronPaths } from './types.js';
-import { createVirtualModulePlugin } from './virtual-module.js';
+import { LibraryFormat } from './types.js';
+import type { CustomElectronOptions, ElectronPaths } from './types.js';
+
 import { VIRTUAL_MODULE_ID } from './constant.js';
+import { createVirtualModulePlugin } from './virtual-module.js';
 
 const defaultTargetElectron = ['electron', 'cjs'] as const
 const [defaultName, defaultLibFormat] = defaultTargetElectron;
@@ -52,41 +56,38 @@ export function electronUnified(customOptions: CustomElectronOptions) {
   const isCustom = customElectronPkg !== defaultName
   console.warn(`[Vite Build] ℹ️ 主进程构建格式为: ${libFormat}`);
 
-  // 创建主进程配置
-  const mainViteConfig: InlineConfig = {
-    build: {
-      lib: {
-        entry: config.mainEntryPath,
-        ...libOptions,
-      },
-      outDir: config.mainOutDir,
-    },
-    ...config.electron.vite,
-    ...config.electron.main.vite,
-  };
-
-  if (enabled) {
-    mainViteConfig.plugins ??= []
-    mainViteConfig.plugins.push(
-      createVirtualModulePlugin(electronPaths, { devEnhancement }),
-      {
-        name: 'electron-unified:usage-hint',
-        configResolved(_config: ResolvedConfig) {
-          if (process.env.NODE_ENV !== 'production' && enabled) {
-            console.log(`[Electron Unified] 📦 虚拟模块已启用: ${VIRTUAL_MODULE_ID}`);
-            console.log('[Electron Unified] 💡 在主进程中使用以下方式导入路径配置:');
-            console.log(`  import electronPaths from "${VIRTUAL_MODULE_ID}";`);
-            console.log('  // 或');
-            console.log(`  import { __main_dist_entry__ } from "${VIRTUAL_MODULE_ID}";`);
-          }
-        }
-      })
-  }
+  const rendererRoot = config.renderer.root;
+  const rendererDist = rendererRoot ? path.join(process.cwd(), config.renderer.dist) : undefined;
+  const electronRoot = rendererRoot ? process.cwd() : undefined;
 
   const electronConfig: ElectronOptions[] = [
     {
-      // === main ===
-      vite: mainViteConfig,
+      vite: {
+        root: electronRoot,
+        build: {
+          lib: {
+            entry: config.mainEntryPath,
+            ...libOptions,
+          },
+          outDir: config.mainOutDir,
+        },
+        plugins: enabled ? [
+          createVirtualModulePlugin(electronPaths, { devEnhancement }),
+          {
+            name: 'electron-unified:usage-hint',
+            configResolved(_config: ResolvedConfig) {
+              if (process.env.NODE_ENV !== 'production' && enabled) {
+                console.log(`[Electron Unified] 📦 虚拟模块已启用: ${VIRTUAL_MODULE_ID}`);
+                console.log('[Electron Unified] 💡 在主进程中使用以下方式导入路径配置:');
+                console.log(`  import electronPaths from "${VIRTUAL_MODULE_ID}";`);
+                console.log('  // 或');
+                console.log(`  import { __main_dist_entry__ } from "${VIRTUAL_MODULE_ID}";`);
+              }
+            }
+          }
+        ] : undefined,
+        ...mergeConfig(config.electron.vite ?? {}, config.electron.main.vite ?? {}),
+      },
       onstart(args) {
         if (isCustom) {
           console.log('[Custom Hook] Electron Downgrade Check...');
@@ -99,8 +100,8 @@ export function electronUnified(customOptions: CustomElectronOptions) {
       },
     },
     {
-      // === preload ===
       vite: {
+        root: electronRoot,
         build: {
           lib: {
             entry: config.preloadEntryPath,
@@ -108,16 +109,22 @@ export function electronUnified(customOptions: CustomElectronOptions) {
           },
           outDir: config.preloadOutDir,
         },
-        ...config.electron.vite,
-        ...config.electron.preload.vite,
+        ...mergeConfig(config.electron.vite ?? {}, config.electron.preload.vite ?? {}),
       }
     },
   ];
 
   const plugins: PluginOption[] = [
+    config.renderer.vite?.plugins,
+    {
+      name: 'electron-unified:config',
+      config(userConfig) {
+        return mergeConfig(userConfig, mergeConfig({ root: rendererRoot, build: { outDir: rendererDist } }, config.renderer.vite ?? {}));
+      },
+    },
     electron(electronConfig),
     {
-      name: 'electron-builder-wrapper',
+      name: 'electron-unified:builder-wrapper',
       closeBundle: async () => {
         if (process.env.NODE_ENV === 'production') {
           console.log('[Build] Vite build complete. Starting post-build...');

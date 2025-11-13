@@ -13,19 +13,22 @@ const alias: AliasOptions = {
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
-  resolve: { alias },
   plugins: [
-    vue(),
     electronUnified({
       // @ts-ignore
       target: [customName, customFormat],
       config: {
+        renderer: {
+          root: 'src/renderer',
+          vite: {
+            resolve: { alias },
+            plugins: [vue()],
+          }
+        },
         electron: {
           root: 'src/electron',
           vite: { resolve: { alias } }
         },
-        renderer: { root: 'src/renderer' }
       }
     }),
   ],

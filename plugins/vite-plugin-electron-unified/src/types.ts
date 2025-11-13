@@ -78,9 +78,10 @@ export interface IElectronConfig<P extends boolean = false> {
 export interface IRendererConfig {
   /**
    * Renderer 源码根目录
-   * @default 'src'
+   * - 这会影响到 index.html 的查找
+   * - 默认不设置，vite 执行目录即为根目录
    */
-  root: string;
+  root?: string;
   /**
    * Renderer 构建输出目录
    * @default 'dist'
@@ -92,6 +93,8 @@ export interface IRendererConfig {
    * @returns `[this.root]/[this.entry]`
    */
   entry: string;
+
+  vite?: import('vite').InlineConfig;
 }
 
 /**
