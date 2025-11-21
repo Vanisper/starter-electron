@@ -39,8 +39,8 @@ const app = new Application(
     }
   },
   {
-    devUrl: process.env.VITE_DEV_SERVER_URL,
-    prodFile: rendererPath,
+    url: process.env.VITE_DEV_SERVER_URL,
+    file: rendererPath,
   },
   {
     async onBeforeRequest(details) {

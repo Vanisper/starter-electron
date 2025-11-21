@@ -9,6 +9,7 @@ import {
   type OnBeforeRequestListenerDetails,
   type CallbackResponse,
 } from 'electron';
+import { access } from 'fs/promises';
 
 // ! 为了兼容 electron@22
 // 最后支持 win7 的 electron 版本 - https://releases.electronjs.org/release?major=v22
@@ -20,14 +21,17 @@ type WindowOpenHandlerResponse = {
   overrideBrowserWindowOptions?: BrowserWindowConstructorOptions
 }
 
-export interface AppPaths {
-  devUrl: string | undefined;
-  prodFile: string;
+export interface ExpandOptions {
+  openDevTools?: boolean;
+  /** server mode */
+  url?: string;
+  /** static mode */
+  file?: string;
 }
 
 export interface Handlers {
-  onWindowOpen?: (details: Electron.HandlerDetails, parentWindow: BrowserWindow) => WindowOpenHandlerResponse | void
-  onWindowClose?: (event: Event, window: BrowserWindow) => void
+  onWindowOpen?: (details: Electron.HandlerDetails, parentWindow: InstanceType<typeof BrowserWindow>) => WindowOpenHandlerResponse | void
+  onWindowClose?: (event: Event, window: InstanceType<typeof BrowserWindow>) => void
   /** 资源请求即将发生时 */
   onBeforeRequest?: (details: OnBeforeRequestListenerDetails) => Promise<CallbackResponse | void>
 }
@@ -35,7 +39,7 @@ export interface Handlers {
 export class Application {
   private readonly app: App;
   private readonly defaultOptions: BrowserWindowConstructorOptions;
-  private readonly defaultPaths: AppPaths;
+  private readonly defaultExpandOptions: ExpandOptions;
   private readonly handlers?: Handlers;
 
   /**
@@ -43,18 +47,18 @@ export class Application {
    * - 键: string (给窗口定义的唯一ID, 如 'main', 'settings')
    * - 值: BrowserWindow 实例
    */
-  private windows: Map<string, BrowserWindow> = new Map();
+  private windows: Map<string, InstanceType<typeof BrowserWindow>> = new Map();
 
   constructor(
     electronApp: App,
     options: BrowserWindowConstructorOptions,
-    paths: AppPaths,
+    expandOptions: ExpandOptions,
     handlers?: Handlers
   ) {
     this.app = electronApp;
     // 视为“主窗口”的默认配置
     this.defaultOptions = options;
-    this.defaultPaths = paths;
+    this.defaultExpandOptions = expandOptions;
 
     this.handlers = handlers;
   }
@@ -76,7 +80,7 @@ export class Application {
 
     await this.app.whenReady();
     // 启动时，创建 "main" 窗口
-    return this.createWindow('main', this.defaultOptions, this.defaultPaths);
+    return this.createWindow('main', this.defaultOptions, this.defaultExpandOptions);
   }
 
   /**
@@ -84,15 +88,19 @@ export class Application {
    */
   private onActivate() {
     if (this.windows.size === 0) {
-      this.createWindow('main', this.defaultOptions, this.defaultPaths);
+      this.createWindow('main', this.defaultOptions, this.defaultExpandOptions);
     }
   }
 
   private async onWindowAllClosed() {
     // [INFO] 开发模式优化
     // 开发模式下直接中断项目，由于 mac 端 dock 栏后台暂留的机制
-    // app 可能不会退出，此处对 devUrl 特别做判断（开发模式中断项目 devUrl 将会无服务）
-    const isAccessible = await checkUrlAccessible(this.defaultPaths.devUrl)
+    // app 可能不会退出，此处对 url\file 特别做判断（开发模式中断项目 url 将会无服务）
+    const isAccessible = this.defaultExpandOptions.url
+      ? await checkUrlAccessible(this.defaultExpandOptions.url)
+      : this.defaultExpandOptions.file
+        ? await access(this.defaultExpandOptions.file)
+        : false
 
     if (process.platform !== 'darwin' || !isAccessible) {
       this.app.quit();
@@ -103,12 +111,12 @@ export class Application {
    * 创建或聚焦一个窗口
    * @param windowKey 窗口的唯一标识符 (e.g., "main", "settings")
    * @param options 窗口的 BrowserWindow 选项
-   * @param paths (可选) 加载的路径。如果省略，将不加载任何内容。
+   * @param expandOptions (可选) 拓展选项
    */
   public createWindow(
     windowKey: string,
     options: BrowserWindowConstructorOptions,
-    paths?: Partial<AppPaths>
+    expandOptions?: ExpandOptions
   ) {
     // 如果窗口存在，则聚焦它而不是创建新的
     if (this.windows.has(windowKey)) {
@@ -143,16 +151,20 @@ export class Application {
       return this.handleWindowOpen(details, newWindow)
     });
 
-    const loadPath = paths?.devUrl || this.defaultPaths.devUrl;
-    const loadFile = paths?.prodFile || this.defaultPaths.prodFile;
+    const loadPath = expandOptions?.url || this.defaultExpandOptions.url;
+    const loadFile = expandOptions?.file || this.defaultExpandOptions.file;
+    const openDevTools = expandOptions?.openDevTools || this.defaultExpandOptions.openDevTools;
 
     if (loadPath) {
       newWindow.loadURL(loadPath);
-      newWindow.webContents.openDevTools();
     } else if (loadFile) {
       newWindow.loadFile(loadFile);
     } else {
-      console.warn(`[App] 窗口 ${windowKey} 被创建，但没有提供 devUrl 或 prodFile。`);
+      console.warn(`[App] 窗口 ${windowKey} 被创建，但没有提供 url 或 file。`);
+    }
+
+    if (openDevTools) {
+      newWindow.webContents.openDevTools();
     }
 
     newWindow
@@ -176,7 +188,7 @@ export class Application {
    */
   private handleWindowOpen(
     details: HandlerDetails,
-    _parentWindow: BrowserWindow
+    _parentWindow: InstanceType<typeof BrowserWindow>
   ): WindowOpenHandlerResponse {
     // http(s) 的链接使用本机浏览器打开
     if (details.url.startsWith('http:') || details.url.startsWith('https:')) {
@@ -191,7 +203,7 @@ export class Application {
   /**
    * 获取窗口
    */
-  public getWindow(windowKey: string): BrowserWindow | undefined {
+  public getWindow(windowKey: string) {
     return this.windows.get(windowKey);
   }
 }
