@@ -1,6 +1,7 @@
 import http from 'http';
 import https from 'https';
 import path from 'path';
+import { access } from 'fs/promises';
 import { fileURLToPath, URL } from 'url';
 
 /**
@@ -15,22 +16,35 @@ export function checkUrlAccessible(url?: string): Promise<boolean> {
     }
     try {
       const parsedUrl = new URL(url);
-      const client = parsedUrl.protocol === 'https:' ? https : http;
 
-      const request = client.request(url, { method: 'HEAD', timeout: 5000 }, (response) => {
-        resolve(response.statusCode !== undefined && response.statusCode < 400);
-      });
+      if (parsedUrl.protocol === 'file:') {
+        // Handle file:// URLs
+        const filePath = fileURLToPath(parsedUrl);
+        access(filePath)
+          .then(() => resolve(true))
+          .catch(() => resolve(false));
+      } else if (['https:', 'http:'].includes(parsedUrl.protocol)) {
+        // Handle http(s):// URLs
+        const client = parsedUrl.protocol === 'https:' ? https : http;
 
-      request.on('error', () => {
+        const request = client.request(url, { method: 'HEAD', timeout: 5000 }, (response) => {
+          resolve(response.statusCode !== undefined && response.statusCode < 400);
+        });
+
+        request.on('error', () => {
+          resolve(false);
+        });
+
+        request.on('timeout', () => {
+          request.destroy();
+          resolve(false);
+        });
+
+        request.end();
+      } else {
+        // Unsupported protocol
         resolve(false);
-      });
-
-      request.on('timeout', () => {
-        request.destroy();
-        resolve(false);
-      });
-
-      request.end();
+      }
     } catch (error) {
       resolve(false);
     }
